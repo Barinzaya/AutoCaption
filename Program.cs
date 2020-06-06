@@ -17,6 +17,8 @@ namespace AutoSub
 {
     public class Program : IDisposable
     {
+        private readonly char[] BREAK_CHARS = { ' ', '\n', '\r', '\t', '-', '.', ',' };
+
         private AppConfig _config;
         private TomlSettings _tomlSettings;
 
@@ -296,10 +298,24 @@ namespace AutoSub
             while(remainder.Length > 0)
             {
                 var lineMax = (int)_skFillPaint.BreakText(remainder, width);
+                var lineMin = lineMax * 3 / 4;
 
-                // TODO: seek back to an appropriate character to break on first?
-                var line = remainder.Substring(0, lineMax).Trim();
-                remainder = remainder.Substring(lineMax).Trim();
+                var lineBreak = lineMax;
+                if(lineBreak < remainder.Length)
+                {
+                    lineBreak = remainder.LastIndexOfAny(BREAK_CHARS, lineMax - 1);
+                    if(lineBreak < lineMin)
+                    {
+                        lineBreak = lineMax;
+                    }
+                    else
+                    {
+                        lineBreak++;
+                    }
+                }
+
+                var line = remainder.Substring(0, lineBreak).Trim();
+                remainder = remainder.Substring(lineBreak).Trim();
 
                 lines.Add(line);
             }
