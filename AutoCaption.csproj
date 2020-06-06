@@ -77,8 +77,10 @@
   <ItemGroup>
     <Compile Include="AppConfig.cs" />
     <Compile Include="Caption.cs" />
+    <Compile Include="ISpeechRecognizer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="WindowsSpeechRecognizer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

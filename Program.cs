@@ -33,7 +33,7 @@ namespace AutoSub
         private SKPaint _skFillPaint, _skStrokePaint;
         private SKTypeface _skFont;
 
-        private SpeechRecognitionEngine _speechEngine;
+        private ISpeechRecognizer _speechRecognizer;
 
         private ConcurrentQueue<Action> _actions;
         private List<Caption> _captions;
@@ -151,14 +151,13 @@ namespace AutoSub
 
         private void InitSpeech()
         {
-            _speechEngine = new SpeechRecognitionEngine();
-            _speechEngine.LoadGrammar(new DictationGrammar());
+            _speechRecognizer = new WindowsSpeechRecognizer();
 
-            _speechEngine.SpeechHypothesized += OnSpeechHypothesized;
-            _speechEngine.SpeechRecognized += OnSpeechRecognized;
+            _speechRecognizer.SpeechCancelled += OnSpeechCancelled;
+            _speechRecognizer.SpeechCompleted += OnSpeechCompleted;
+            _speechRecognizer.SpeechPartial += OnSpeechPartial;
 
-            _speechEngine.SetInputToDefaultAudioDevice();
-            _speechEngine.RecognizeAsync(RecognizeMode.Multiple);
+            _speechRecognizer.Start(_config.Recognition);
         }
 
         private void InitWindow()
@@ -323,7 +322,7 @@ namespace AutoSub
             return lines.ToArray();
         }
 
-        public Caption GetPartialCaption(bool create = false)
+        public Caption GetPartialCaption(bool create)
         {
             Caption caption = null;
 
@@ -346,44 +345,34 @@ namespace AutoSub
             return caption;
         }
 
-        private void OnSpeechHypothesized(object sender, SpeechHypothesizedEventArgs e)
+        private void OnSpeechCancelled(object sender, EventArgs e)
         {
-            var confidence = e.Result.Confidence;
-            var text = e.Result.Text;
             _actions.Enqueue(() => {
-                if(confidence > _config.Recognition.MinUpdateConfidence)
+                var caption = GetPartialCaption(false);
+                if(caption != null)
                 {
-                    var caption = GetPartialCaption(confidence > _config.Recognition.MinStartConfidence);
-                    if(caption != null)
-                    {
-                        caption.AppearTime = double.PositiveInfinity;
-                        caption.Text = TransformText(text);
-                        caption.Lines = null;
-                    }
+                    _captions.RemoveAt(_captions.Count - 1);
                 }
             });
         }
 
-        private void OnSpeechRecognized(object sender, SpeechRecognizedEventArgs e)
+        private void OnSpeechCompleted(object sender, string e)
         {
-            var confidence = e.Result.Confidence;
-            var text = e.Result.Text;
-
             _actions.Enqueue(() => {
-                var caption = GetPartialCaption(confidence > _config.Recognition.MinStartConfidence);
-                if(caption != null)
-                {
-                    if(confidence > _config.Recognition.MinKeepConfidence)
-                    {
-                        caption.AppearTime = _time;
-                        caption.Text = TransformText(text);
-                        caption.Lines = null;
-                    }
-                    else
-                    {
-                        _captions.RemoveAt(_captions.Count - 1);
-                    }
-                }
+                var caption = GetPartialCaption(true);
+                caption.AppearTime = _time;
+                caption.Text = TransformText(e);
+                caption.Lines = null;
+            });
+        }
+
+        private void OnSpeechPartial(object sender, string e)
+        {
+            _actions.Enqueue(() => {
+                var caption = GetPartialCaption(true);
+                caption.AppearTime = double.PositiveInfinity;
+                caption.Text = TransformText(e);
+                caption.Lines = null;
             });
         }
 
@@ -456,8 +445,8 @@ namespace AutoSub
                     _config = null;
                 }
 
-                _speechEngine?.Dispose();
-                _speechEngine = null;
+                _speechRecognizer?.Dispose();
+                _speechRecognizer = null;
 
                 _skFont?.Dispose();
                 _skFont = null;
