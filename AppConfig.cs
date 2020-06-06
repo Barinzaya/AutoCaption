@@ -1,7 +1,7 @@
 ﻿using OpenTK;
 using SkiaSharp;
 
-namespace AutoSub
+namespace AutoCaption
 {
     public class AppConfig
     {
@@ -11,6 +11,13 @@ namespace AutoSub
     }
 
     public class RecognitionConfig
+    {
+        public string Engine { get; set; } = "Windows";
+
+        public WindowsRecognitionConfig Windows { get; set; } = new WindowsRecognitionConfig();
+    }
+
+    public class WindowsRecognitionConfig
     {
         public float MinKeepConfidence { get; set; } = 0.1f;
         public float MinStartConfidence { get; set; } = 0.4f;

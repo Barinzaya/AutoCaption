@@ -1,8 +1,7 @@
-﻿using AutoSub;
-using System;
+﻿using System;
 using System.Speech.Recognition;
 
-namespace AutoCaption
+namespace AutoCaption.Recognizers
 {
     public class WindowsSpeechRecognizer : ISpeechRecognizer
     {
@@ -10,7 +9,7 @@ namespace AutoCaption
         public event EventHandler<string> SpeechCompleted;
         public event EventHandler<string> SpeechPartial;
 
-        private RecognitionConfig _config;
+        private WindowsRecognitionConfig _config;
         private SpeechRecognitionEngine _speechEngine;
 
         private bool _recognizing;
@@ -18,7 +17,7 @@ namespace AutoCaption
 
         public void Start(RecognitionConfig config)
         {
-            _config = config;
+            _config = config.Windows;
 
             if(_speechEngine == null)
             {

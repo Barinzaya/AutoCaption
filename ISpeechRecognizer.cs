@@ -1,5 +1,4 @@
-﻿using AutoSub;
-using System;
+﻿using System;
 
 namespace AutoCaption
 {

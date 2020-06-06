@@ -9,11 +9,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Speech.Recognition;
 using System.Text;
 using System.Threading;
 
-namespace AutoSub
+namespace AutoCaption
 {
     public class Program : IDisposable
     {
@@ -151,7 +152,24 @@ namespace AutoSub
 
         private void InitSpeech()
         {
-            _speechRecognizer = new WindowsSpeechRecognizer();
+            var assembly = Assembly.GetExecutingAssembly();
+
+            var engineName = _config.Recognition.Engine;
+            var recognizerName = $"AutoCaption.Recognizers.{engineName}SpeechRecognizer";
+
+            var recognizerType = assembly.GetType(recognizerName);
+            if(recognizerType == null || !typeof(ISpeechRecognizer).IsAssignableFrom(recognizerType))
+            {
+                throw new ArgumentException($"No recognition engine found for configured engine \"{engineName}\".");
+            }
+
+            var constructor = recognizerType.GetConstructor(Type.EmptyTypes);
+            if(constructor == null)
+            {
+                throw new ArgumentException($"Recognition engine for configured engine \"{engineName}\" does not have a suitable constructor.");
+            }
+
+            _speechRecognizer = (ISpeechRecognizer)constructor.Invoke(null);
 
             _speechRecognizer.SpeechCancelled += OnSpeechCancelled;
             _speechRecognizer.SpeechCompleted += OnSpeechCompleted;
