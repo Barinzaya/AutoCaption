@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Speech.Recognition;
+using System.Text;
 using System.Threading;
 
 namespace AutoSub
@@ -340,7 +341,7 @@ namespace AutoSub
                     if(caption != null)
                     {
                         caption.AppearTime = double.PositiveInfinity;
-                        caption.Text = text;
+                        caption.Text = TransformText(text);
                         caption.Lines = null;
                     }
                 }
@@ -359,7 +360,7 @@ namespace AutoSub
                     if(confidence > _config.Recognition.MinKeepConfidence)
                     {
                         caption.AppearTime = _time;
-                        caption.Text = e.Result.Text;
+                        caption.Text = TransformText(text);
                         caption.Lines = null;
                     }
                     else
@@ -412,6 +413,21 @@ namespace AutoSub
             {
                 caption.Lines = null;
             }
+        }
+
+        private string TransformText(string text)
+        {
+            text = text?.Trim();
+            if(string.IsNullOrEmpty(text))
+            {
+                return text;
+            }
+
+            var buffer = new StringBuilder(text);
+
+            buffer[0] = char.ToUpper(buffer[0]);
+
+            return buffer.ToString();
         }
 
         protected virtual void Dispose(bool disposing)
