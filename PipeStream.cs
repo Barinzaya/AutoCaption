@@ -18,7 +18,7 @@ namespace AutoCaption
             set {}
         }
 
-        private byte[] _buffer;
+        private readonly byte[] _buffer;
         private int _read, _write;
         private bool _open;
 

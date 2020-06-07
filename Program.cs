@@ -83,12 +83,13 @@ namespace AutoCaption
 
         private void InitAudio()
         {
-            _waveIn = new WaveInEvent();
+            _waveIn = new WaveInEvent()
+            {
+                BufferMilliseconds = 20,
+                WaveFormat = new WaveFormat(48000, 16, 1),
+            };
 
-            _waveIn.BufferMilliseconds = 20;
             _waveIn.DataAvailable += OnAudioAvailable;
-            _waveIn.WaveFormat = new WaveFormat(48000, 16, 1);
-
             _waveIn.StartRecording();
         }
 
