@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Speech.AudioFormat;
 using System.Speech.Recognition;
 
 namespace AutoCaption.Recognizers
@@ -14,10 +15,12 @@ namespace AutoCaption.Recognizers
 
         private bool _recognizing;
         private bool _speaking;
+        private PipeStream _stream;
 
         public void Start(RecognitionConfig config)
         {
             _config = config.Windows;
+            _stream = new PipeStream(9600);
 
             if(_speechEngine == null)
             {
@@ -26,9 +29,10 @@ namespace AutoCaption.Recognizers
 
                 _speechEngine.SpeechHypothesized += OnSpeechHypothesized;
                 _speechEngine.SpeechRecognized += OnSpeechRecognized;
-
-                _speechEngine.SetInputToDefaultAudioDevice();
             }
+
+            var format = new SpeechAudioFormatInfo(48000, AudioBitsPerSample.Sixteen, AudioChannel.Mono);
+            _speechEngine.SetInputToAudioStream(_stream, format);
 
             if(!_recognizing)
             {
@@ -67,6 +71,11 @@ namespace AutoCaption.Recognizers
             }
         }
 
+        public void ProcessData(byte[] data, int offset, int count)
+        {
+            _stream.Write(data, offset, count);
+        }
+
         public void Stop()
         {
             if(_speaking)
@@ -85,6 +94,9 @@ namespace AutoCaption.Recognizers
         {
             if(disposing)
             {
+                _stream?.Dispose();
+                _stream = null;
+
                 _speechEngine?.Dispose();
                 _speechEngine = null;
             }

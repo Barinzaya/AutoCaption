@@ -1,4 +1,4 @@
-﻿using AutoCaption;
+﻿using NAudio.Wave;
 using Nett;
 using OpenTK;
 using OpenTK.Graphics;
@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using System.Speech.Recognition;
 using System.Text;
 using System.Threading;
 
@@ -35,6 +34,7 @@ namespace AutoCaption
         private SKTypeface _skFont;
 
         private ISpeechRecognizer _speechRecognizer;
+        private WaveInEvent _waveIn;
 
         private ConcurrentQueue<Action> _actions;
         private List<Caption> _captions;
@@ -53,7 +53,11 @@ namespace AutoCaption
             catch(Exception e)
             {
                 Console.Error.WriteLine($"An error has occurred: {e.Message}");
+#if DEBUG
+                throw;
+#else
                 Environment.Exit(1);
+#endif
             }
         }
 
@@ -71,9 +75,21 @@ namespace AutoCaption
             InitConfig();
             InitWindow();
             InitSkia();
-            InitSpeech();
+            InitAudio();
+            InitRecognizer();
 
             _tkWindow.Visible = true;
+        }
+
+        private void InitAudio()
+        {
+            _waveIn = new WaveInEvent();
+
+            _waveIn.BufferMilliseconds = 20;
+            _waveIn.DataAvailable += OnAudioAvailable;
+            _waveIn.WaveFormat = new WaveFormat(48000, 16, 1);
+
+            _waveIn.StartRecording();
         }
 
         private void InitConfig()
@@ -150,7 +166,7 @@ namespace AutoCaption
             }
         }
 
-        private void InitSpeech()
+        private void InitRecognizer()
         {
             var assembly = Assembly.GetExecutingAssembly();
 
@@ -363,6 +379,11 @@ namespace AutoCaption
             return caption;
         }
 
+        private void OnAudioAvailable(object sender, WaveInEventArgs e)
+        {
+            _speechRecognizer.ProcessData(e.Buffer, 0, e.BytesRecorded);
+        }
+
         private void OnSpeechCancelled(object sender, EventArgs e)
         {
             _actions.Enqueue(() => {
@@ -462,6 +483,10 @@ namespace AutoCaption
                     Toml.WriteFile(_config, "config.toml", _tomlSettings);
                     _config = null;
                 }
+
+                _waveIn?.StopRecording();
+                _waveIn?.Dispose();
+                _waveIn = null;
 
                 _speechRecognizer?.Dispose();
                 _speechRecognizer = null;

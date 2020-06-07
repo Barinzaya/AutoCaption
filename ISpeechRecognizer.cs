@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 namespace AutoCaption
 {
@@ -9,6 +10,7 @@ namespace AutoCaption
         event EventHandler<string> SpeechPartial;
 
         void Start(RecognitionConfig config);
+        void ProcessData(byte[] data, int offset, int count);
         void Stop();
     }
 }
